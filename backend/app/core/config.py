@@ -22,8 +22,11 @@ class Settings(BaseSettings):
     # HuggingFace
     HF_TOKEN: str = ""
     
+    from typing import Any
+
     # CORS
-    CORS_ORIGINS: List[str] | str = Field(
+    # Using Any to prevent pydantic-settings from trying to JSON parse the env var
+    CORS_ORIGINS: Any = Field(
         default_factory=lambda: [
             "http://localhost:5173",
             "http://localhost:3000",
@@ -51,11 +54,22 @@ class Settings(BaseSettings):
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
-    def split_cors_origins(cls, value):
+    def parse_cors_origins(cls, value):
         """
-        Allow providing CORS origins as a comma-separated string in .env.
+        Robustly parse CORS origins from various formats (list, string, JSON string).
         """
+        if isinstance(value, list):
+            return value
+            
         if isinstance(value, str):
+            # Check if it's a JSON list string
+            if value.strip().startswith("[") and value.strip().endswith("]"):
+                import json
+                try:
+                    return json.loads(value)
+                except json.JSONDecodeError:
+                    pass # Fallback to comma split
+            
             return [
                 origin.strip()
                 for origin in value.split(",")
