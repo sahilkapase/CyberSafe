@@ -196,18 +196,32 @@ async def get_conversations(
 ):
     """Get all conversations for current user"""
     # Get all unique user IDs that current user has messaged with
-    sent_messages = db.query(Message.receiver_id).filter(Message.sender_id == current_user.id).distinct().all()
-    received_messages = db.query(Message.sender_id).filter(Message.receiver_id == current_user.id).distinct().all()
+    # We can optimize this by using a union query
+    sent_subquery = db.query(Message.receiver_id.label("user_id")).filter(Message.sender_id == current_user.id)
+    received_subquery = db.query(Message.sender_id.label("user_id")).filter(Message.receiver_id == current_user.id)
     
-    user_ids = set()
-    for msg in sent_messages:
-        user_ids.add(msg[0])
-    for msg in received_messages:
-        user_ids.add(msg[0])
+    user_ids_query = sent_subquery.union(received_subquery)
+    user_ids = [row[0] for row in user_ids_query.all()]
     
-    # Get last message for each conversation
+    if not user_ids:
+        return []
+
+    # Fetch all last messages in a more efficient way
+    # This is still not fully optimized but better than N+1 for users
+    # Ideally we would use a window function in SQL, but keeping it simple for SQLite support
+    
     conversations = []
+    
+    # Fetch all users involved in conversations in one go
+    users = db.query(User).filter(User.id.in_(user_ids)).all()
+    user_map = {u.id: u for u in users}
+    
+    # Add CyberBOT if present
+    if 0 in user_ids:
+        user_map[0] = User(id=0, username="CyberBOT", has_red_tag=False)
+
     for uid in user_ids:
+        # Get last message for this specific conversation
         last_message = db.query(Message).filter(
             ((Message.sender_id == current_user.id) & (Message.receiver_id == uid)) |
             ((Message.sender_id == uid) & (Message.receiver_id == current_user.id))
@@ -215,41 +229,36 @@ async def get_conversations(
         
         if not last_message:
             continue
-        
-        # Special handling for CyberBOT (user_id = 0)
-        if uid == 0:
-            conversations.append({
-                "user": {
-                    "id": 0,
-                    "username": "CyberBOT",
-                    "avatar_url": None,
-                    "has_red_tag": False
-                },
-                "last_message": {
-                    "id": last_message.id,
-                    "content": "🤖 Safety Alert - Click to view",
-                    "created_at": last_message.created_at,
-                    "sender_id": last_message.sender_id
-                }
-            })
-        else:
-            other_user = db.query(User).filter(User.id == uid).first()
             
-            if other_user:
-                conversations.append({
-                    "user": {
-                        "id": other_user.id,
-                        "username": other_user.username,
-                        "avatar_url": other_user.avatar_url,
-                        "has_red_tag": other_user.has_red_tag
-                    },
-                    "last_message": {
-                        "id": last_message.id,
-                        "content": last_message.content_filtered or last_message.content,
-                        "created_at": last_message.created_at,
-                        "sender_id": last_message.sender_id
-                    }
-                })
+        other_user = user_map.get(uid)
+        if not other_user and uid != 0:
+            continue
+            
+        # Format user data
+        user_data = {
+            "id": 0,
+            "username": "CyberBOT",
+            "avatar_url": None,
+            "has_red_tag": False
+        }
+        
+        if uid != 0 and other_user:
+            user_data = {
+                "id": other_user.id,
+                "username": other_user.username,
+                "avatar_url": other_user.avatar_url,
+                "has_red_tag": other_user.has_red_tag
+            }
+            
+        conversations.append({
+            "user": user_data,
+            "last_message": {
+                "id": last_message.id,
+                "content": last_message.content_filtered or last_message.content,
+                "created_at": last_message.created_at,
+                "sender_id": last_message.sender_id
+            }
+        })
     
     # Sort by last message time
     conversations.sort(key=lambda x: x["last_message"]["created_at"], reverse=True)

@@ -22,4 +22,5 @@ email-validator==2.2.0
 python-socketio==5.11.3
 aioredis==2.0.1
 alembic==1.13.2
+psycopg2-binary==2.9.9
 

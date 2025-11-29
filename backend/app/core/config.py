@@ -9,7 +9,7 @@ import os
 
 class Settings(BaseSettings):
     # Database
-    DATABASE_URL: str = "sqlite:///./cybershield.db"
+    DATABASE_URL: str = "postgresql://neondb_owner:npg_dybMl3uk6vST@ep-lingering-cloud-ahvudh74-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require"
     
     # JWT
     SECRET_KEY: str = "your-secret-key-change-in-production"

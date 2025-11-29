@@ -114,3 +114,13 @@ The backend uses:
 - Groq for LLM
 - HuggingFace Transformers for image detection
 
+<!-- command to run it locally -->
+cd CyberSafe/backend
+# Activate the virtual environment
+.\venv\Scripts\activate
+# Start the server
+uvicorn main:app --reload
+
+cd CyberSafe/safe-haven-chat
+# Start the development server
+npm run dev
