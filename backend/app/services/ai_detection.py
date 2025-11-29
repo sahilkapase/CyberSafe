@@ -30,18 +30,25 @@ class AIDetectionService:
             except Exception as e:
                 print(f"Warning: Could not initialize Groq client: {e}")
         
-        # Initialize HuggingFace image classifier for NSFW detection
-        # Using a model that detects inappropriate content
+        # HuggingFace model will be loaded lazily on first use
+        self.image_classifier = None
+
+    def _load_image_classifier(self):
+        """Lazy load the image classifier"""
+        if self.image_classifier:
+            return
+
         try:
+            print("Loading image classifier model...")
             if settings.HF_TOKEN:
                 os.environ["HF_TOKEN"] = settings.HF_TOKEN
-            # Using a lightweight model for NSFW detection
-            # You can replace with more specific models like "Falconsai/nsfw_image_detection"
+            
             self.image_classifier = pipeline(
                 "image-classification",
                 model="Falconsai/nsfw_image_detection",
-                device=-1  # CPU, change to 0 for GPU
+                device=-1  # CPU
             )
+            print("Image classifier loaded successfully")
         except Exception as e:
             print(f"Warning: Could not initialize image classifier: {e}")
             self.image_classifier = None
@@ -164,6 +171,9 @@ Respond ONLY with valid JSON, no additional text."""
             "nsfw_score": float
         }
         """
+        if not self.image_classifier:
+            self._load_image_classifier()
+            
         if not self.image_classifier:
             # Fallback: basic check
             return {
