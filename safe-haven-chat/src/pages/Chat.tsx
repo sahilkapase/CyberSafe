@@ -45,6 +45,9 @@ import { apiClient, UserSummary } from '@/lib/api';
 import { useWebSocket, WebSocketMessage } from '@/hooks/useWebSocket';
 import { format } from 'date-fns';
 import CyberbullyingAlertDialog from '@/components/CyberbullyingAlertDialog';
+import { useWebRTC } from '@/hooks/useWebRTC';
+import VideoCall from '@/components/VideoCall';
+import IncomingCallDialog from '@/components/IncomingCallDialog';
 
 interface Conversation {
   user: { id: number; username: string; avatar_url?: string; has_red_tag?: boolean };
@@ -87,7 +90,19 @@ const Chat = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const token = sessionStorage.getItem('auth_token');
-  const { isConnected, sendMessage, sendTyping, messages: wsMessages } = useWebSocket(token);
+  const { isConnected, sendMessage, sendTyping, sendSignalingMessage, messages: wsMessages } = useWebSocket(token);
+  const {
+    localStream,
+    remoteStream,
+    isCallActive,
+    callStatus,
+    startCall,
+    answerCall,
+    handleSignal,
+    endCall
+  } = useWebRTC(currentUser?.id, sendSignalingMessage);
+
+  const [incomingCall, setIncomingCall] = useState<{ callerId: number; callerName: string; callerAvatar?: string; callType: 'video' | 'audio' } | null>(null);
 
   const isAdmin = currentUser?.role === 'admin';
 
@@ -272,9 +287,44 @@ const Chat = () => {
 
         // Always reload conversations to show CyberBOT chat in the list
         loadUserAndConversations();
+
+        // Show popup warning to the violator (current user)
+        if (wsMsg.receiver_id === currentUser?.id) {
+          setFlaggedMessage({
+            id: wsMsg.id!,
+            sender_id: 0,
+            receiver_id: currentUser?.id,
+            content: wsMsg.content!,
+            content_filtered: wsMsg.content!,
+            message_type: 'system_warning',
+            is_flagged: false,
+            severity_score: 'high', // Force high severity for popup
+            created_at: wsMsg.created_at!,
+          });
+          setAlertDialogOpen(true);
+        }
       }
     });
   }, [wsMessages, selectedUserId, currentUser]);
+
+  // Handle signaling messages
+  useEffect(() => {
+    const lastMessage = wsMessages[wsMessages.length - 1];
+    if (lastMessage && ['offer', 'answer', 'ice-candidate', 'call_end'].includes(lastMessage.type)) {
+      handleSignal(lastMessage);
+
+      if (lastMessage.type === 'offer' && callStatus === 'idle') {
+        setIncomingCall({
+          callerId: lastMessage.sender_id!,
+          callerName: lastMessage.sender_username || 'Unknown',
+          callerAvatar: lastMessage.sender_avatar,
+          callType: 'video' // Default to video for now, or check payload
+        });
+      } else if (lastMessage.type === 'call_end') {
+        setIncomingCall(null);
+      }
+    }
+  }, [wsMessages, handleSignal, callStatus]);
 
   useEffect(() => {
     scrollToBottom();
@@ -659,16 +709,23 @@ const Chat = () => {
                       )}
                     </Box>
                     <Typography variant="caption" color="success.main" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'success.main' }} />
-                      Active now
+                      <Box component="span" sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'success.main' }} />
+                      Online
                     </Typography>
                   </Box>
-                  <Stack direction="row">
+                  <Stack direction="row" spacing={1}>
+                    <Tooltip title="Voice Call">
+                      <IconButton onClick={() => startCall(activePeer.id, false)} color="primary">
+                        <PhoneRoundedIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Video Call">
+                      <IconButton onClick={() => startCall(activePeer.id, true)} color="primary">
+                        <VideocamRoundedIcon />
+                      </IconButton>
+                    </Tooltip>
                     <IconButton>
-                      <PhoneRoundedIcon />
-                    </IconButton>
-                    <IconButton>
-                      <VideocamRoundedIcon />
+                      <SearchRoundedIcon />
                     </IconButton>
                     <IconButton onClick={handleMenuOpen}>
                       <MoreVertRoundedIcon />
@@ -861,7 +918,7 @@ const Chat = () => {
           onClick={() => navigate('/mental-health')}
           sx={{
             position: 'fixed',
-            bottom: { xs: 80, md: 32 },
+            bottom: { xs: 140, md: 32 }, // Moved up on mobile to avoid input overlap
             right: 32,
             boxShadow: 'var(--shadow-xl)',
             background: 'var(--gradient-primary)',
@@ -871,7 +928,6 @@ const Chat = () => {
         </Fab>
       </Tooltip>
 
-      {/* Cyberbullying Alert Dialog */}
       <CyberbullyingAlertDialog
         open={alertDialogOpen}
         onClose={handleDismissAlert}
@@ -882,6 +938,35 @@ const Chat = () => {
         senderName={selectedPeer?.username || 'Unknown User'}
         categories={['cyberbullying']}
       />
+      <IncomingCallDialog
+        open={!!incomingCall}
+        callerName={incomingCall?.callerName || ''}
+        callerAvatar={incomingCall?.callerAvatar}
+        callType={incomingCall?.callType || 'video'}
+        onAccept={() => {
+          if (incomingCall) {
+            answerCall(incomingCall.callType === 'video');
+            setIncomingCall(null);
+          }
+        }}
+        onReject={() => {
+          if (incomingCall) {
+            sendSignalingMessage(incomingCall.callerId, 'call_end');
+            setIncomingCall(null);
+          }
+        }}
+      />
+
+      {isCallActive && (
+        <VideoCall
+          localStream={localStream}
+          remoteStream={remoteStream}
+          onEndCall={endCall}
+          isAudioOnly={false} // Can be dynamic
+          remoteUserName={selectedPeer?.username || incomingCall?.callerName}
+          remoteUserAvatar={selectedPeer?.avatar_url || incomingCall?.callerAvatar}
+        />
+      )}
     </Box>
   );
 };

@@ -31,6 +31,11 @@ export interface WebSocketMessage {
   message_id?: number;
   message_type?: string;
   is_blocked?: boolean;
+  // Signaling fields
+  payload?: any;
+  sdp?: any;
+  candidate?: any;
+  sender_avatar?: string;
 }
 
 export const useWebSocket = (token: string | null) => {
@@ -166,6 +171,16 @@ export const useWebSocket = (token: string | null) => {
     }
   }, [socket]);
 
+  const sendSignalingMessage = useCallback((receiverId: number, type: string, payload?: any) => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({
+        type,
+        receiver_id: receiverId,
+        ...payload
+      }));
+    }
+  }, [socket]);
+
   return {
     socket,
     isConnected,
@@ -173,6 +188,7 @@ export const useWebSocket = (token: string | null) => {
     typingUsers,
     sendMessage,
     sendTyping,
+    sendSignalingMessage,
   };
 };
 

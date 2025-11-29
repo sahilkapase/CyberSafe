@@ -101,6 +101,8 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
                     await handle_typing(data, user)
                 elif message_type == "read":
                     await handle_read(data, user, db)
+                elif message_type in ["offer", "answer", "ice-candidate", "call_request", "call_response", "call_end"]:
+                    await handle_signaling(data, user)
         
         except WebSocketDisconnect:
             manager.disconnect(user.id)
@@ -305,3 +307,22 @@ async def handle_read(data: dict, user: User, db: Session):
             "user_id": user.id
         }, user.id)
 
+
+async def handle_signaling(data: dict, sender: User):
+    """Handle WebRTC signaling messages"""
+    receiver_id = data.get("receiver_id")
+    message_type = data.get("type")
+    
+    if not receiver_id:
+        return
+        
+    # Forward the message to the receiver
+    await manager.send_personal_message({
+        "type": message_type,
+        "sender_id": sender.id,
+        "sender_username": sender.username,
+        "sender_avatar": sender.avatar_url, # Useful for incoming call UI
+        "payload": data.get("payload"), # SDP or ICE candidate
+        "sdp": data.get("sdp"), # Some implementations send sdp directly
+        "candidate": data.get("candidate") # Some implementations send candidate directly
+    }, receiver_id)
