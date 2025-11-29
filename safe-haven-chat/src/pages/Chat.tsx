@@ -41,7 +41,7 @@ import AttachFileRoundedIcon from '@mui/icons-material/AttachFileRounded';
 import InsertEmoticonRoundedIcon from '@mui/icons-material/InsertEmoticonRounded';
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
-import { apiClient, UserSummary } from '@/lib/api';
+import { apiClient, UserSummary, getAssetUrl } from '@/lib/api';
 import { useWebSocket, WebSocketMessage } from '@/hooks/useWebSocket';
 import { format } from 'date-fns';
 import CyberbullyingAlertDialog from '@/components/CyberbullyingAlertDialog';
@@ -233,36 +233,44 @@ const Chat = () => {
     }, 3000);
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !selectedUserId) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      setError('Image size too large. Please select an image under 2MB.');
+    if (file.size > 5 * 1024 * 1024) { // Increased limit to 5MB for HTTP upload
+      setError('Image size too large. Please select an image under 5MB.');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
+    try {
+      // Upload via HTTP
+      const response = await apiClient.uploadImage(file);
+      const fileUrl = response.file_url;
+
       if (isConnected) {
-        sendMessage(selectedUserId, base64String, 'image');
+        // Send message with URL content
+        sendMessage(selectedUserId, fileUrl, 'image');
+
+        // Optimistically update UI
         setMessages((prev) => [
           ...prev,
           {
             id: Date.now(),
             sender_id: currentUser.id,
             receiver_id: selectedUserId,
-            content: base64String,
-            content_filtered: base64String,
+            content: fileUrl,
+            content_filtered: fileUrl,
             message_type: 'image',
             is_flagged: false,
             created_at: new Date().toISOString(),
           },
         ]);
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err: any) {
+      console.error('Image upload failed:', err);
+      setError(err.message || 'Failed to upload image');
+    }
+
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -402,8 +410,11 @@ const Chat = () => {
 
   useEffect(() => {
     wsMessages.forEach((wsMsg: WebSocketMessage) => {
+      console.log('[Chat Debug] Received WS Message:', wsMsg);
+
       // Handle regular messages
       if (wsMsg.type === 'message' && wsMsg.sender_id === selectedUserId) {
+        console.log('[Chat Debug] Processing message from selected user');
         setMessages((prev) => [
           ...prev,
           {
@@ -421,6 +432,7 @@ const Chat = () => {
 
         // Check if message is flagged and from the other user
         if (wsMsg.is_flagged && wsMsg.sender_id !== currentUser?.id) {
+          console.log('[Chat Debug] Message is flagged! Triggering popup for victim.');
           const flaggedMsg = {
             id: wsMsg.id!,
             sender_id: wsMsg.sender_id!,
@@ -442,6 +454,7 @@ const Chat = () => {
 
       // Handle CyberBOT warning messages
       if (wsMsg.type === 'cyberbot_warning' && wsMsg.sender_id === 0) {
+        console.log('[Chat Debug] Received CyberBOT warning');
         // Only add to messages if we're viewing the CyberBOT conversation
         if (selectedUserId === 0) {
           setMessages((prev) => [
@@ -462,6 +475,7 @@ const Chat = () => {
         }
         // Show popup warning to the violator (current user)
         if (wsMsg.receiver_id === currentUser?.id) {
+          console.log('[Chat Debug] Triggering popup for violator.');
           setFlaggedMessage({
             id: wsMsg.id!,
             sender_id: 0,
@@ -734,7 +748,7 @@ const Chat = () => {
                 </Box>
 
                 {/* Messages Area */}
-                <Box sx={{ flex: 1, overflowY: 'auto', p: 3, bgcolor: 'rgba(249,250,251, 0.5)' }}>
+                <Box sx={{ flex: 1, overflowY: 'auto', p: 3, bgcolor: 'rgba(249,250,251, 0.5)', backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
                   {messages.map((msg) => {
                     const isOwn = msg.sender_id === currentUser?.id;
                     const isCyberBOT = msg.sender_id === 0 || msg.message_type === 'system_warning';
@@ -752,41 +766,31 @@ const Chat = () => {
                             maxWidth: isCyberBOT ? '85%' : '70%',
                             p: 2,
                             borderRadius: 3,
-                            borderTopRightRadius: isOwn ? 4 : 3,
-                            borderTopLeftRadius: isOwn ? 3 : 4,
+                            borderTopRightRadius: isOwn ? 0 : 3,
+                            borderTopLeftRadius: isOwn ? 3 : 0,
                             bgcolor: isCyberBOT ? 'warning.light' : isOwn ? 'primary.main' : 'white',
                             color: isCyberBOT ? 'warning.dark' : isOwn ? 'white' : 'text.primary',
-                            boxShadow: isCyberBOT ? '0 4px 12px rgba(237, 108, 2, 0.2)' : isOwn ? 'var(--shadow-md)' : '0 2px 4px rgba(0,0,0,0.05)',
+                            boxShadow: isCyberBOT ? '0 4px 12px rgba(237, 108, 2, 0.2)' : isOwn ? '0 4px 12px rgba(37, 99, 235, 0.3)' : '0 2px 8px rgba(0,0,0,0.05)',
                             background: isCyberBOT ? 'linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%)' : isOwn ? 'var(--gradient-primary)' : 'white',
                             border: isCyberBOT ? '2px solid' : 'none',
                             borderColor: isCyberBOT ? 'warning.main' : 'transparent',
+                            position: 'relative',
                           }}
                         >
                           {isCyberBOT && (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, pb: 1, borderBottom: '1px solid', borderColor: 'warning.main' }}>
                               <Box sx={{ fontSize: '1.2rem' }}>🤖</Box>
-                              <Typography variant="caption" fontWeight={700} color="warning.dark">
-                                CyberBOT - Safety Alert
-                              </Typography>
-                            </Box>
-                          )}
-                          {msg.message_type === 'image' ? (
-                            <Box sx={{ borderRadius: 2, overflow: 'hidden' }}>
-                              <img
-                                src={msg.content_filtered || msg.content}
-                                alt="Shared"
-                                style={{
-                                  maxWidth: '100%',
-                                  maxHeight: 300,
-                                  display: 'block',
-                                  filter: msg.is_flagged ? 'blur(10px)' : 'none'
+                              maxWidth: '100%',
+                              maxHeight: 300,
+                              display: 'block',
+                              filter: msg.is_flagged ? 'blur(10px)' : 'none'
                                 }}
                               />
                             </Box>
                           ) : (
-                            <Typography variant="body1" sx={{ wordBreak: 'break-word' }}>
-                              {msg.content_filtered || msg.content}
-                            </Typography>
+                          <Typography variant="body1" sx={{ wordBreak: 'break-word', lineHeight: 1.6 }}>
+                            {msg.content_filtered || msg.content}
+                          </Typography>
                           )}
                           <Typography
                             variant="caption"
@@ -808,9 +812,21 @@ const Chat = () => {
                 </Box>
 
                 {/* Input Area */}
-                <Box sx={{ p: 2, bgcolor: 'background.paper', borderTop: '1px solid', borderColor: 'divider' }}>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <IconButton size="small" onClick={() => fileInputRef.current?.click()}>
+                <Box sx={{ p: 2, bgcolor: 'transparent' }}>
+                  <Paper
+                    elevation={3}
+                    sx={{
+                      p: 1,
+                      borderRadius: 4,
+                      display: 'flex',
+                      alignItems: 'center',
+                      bgcolor: 'rgba(255,255,255,0.9)',
+                      backdropFilter: 'blur(10px)',
+                      border: '1px solid',
+                      borderColor: 'rgba(255,255,255,0.5)'
+                    }}
+                  >
+                    <IconButton size="small" onClick={() => fileInputRef.current?.click()} sx={{ mx: 0.5 }}>
                       <ImageRoundedIcon color="action" />
                     </IconButton>
                     <input
@@ -820,7 +836,7 @@ const Chat = () => {
                       accept="image/*"
                       onChange={handleImageUpload}
                     />
-                    <IconButton size="small">
+                    <IconButton size="small" sx={{ mr: 1 }}>
                       <AttachFileRoundedIcon color="action" />
                     </IconButton>
                     <TextField
@@ -840,8 +856,12 @@ const Chat = () => {
                       }}
                       sx={{
                         '& .MuiOutlinedInput-root': {
-                          borderRadius: 4,
-                          bgcolor: 'background.default',
+                          borderRadius: 2,
+                          bgcolor: 'transparent',
+                          '& fieldset': { border: 'none' },
+                        },
+                        '& .MuiOutlinedInput-input': {
+                          py: 1.5
                         }
                       }}
                     />
@@ -852,13 +872,17 @@ const Chat = () => {
                       sx={{
                         bgcolor: 'primary.main',
                         color: 'white',
-                        '&:hover': { bgcolor: 'primary.dark' },
-                        '&.Mui-disabled': { bgcolor: 'action.disabledBackground' }
+                        width: 40,
+                        height: 40,
+                        ml: 1,
+                        '&:hover': { bgcolor: 'primary.dark', transform: 'scale(1.05)' },
+                        '&.Mui-disabled': { bgcolor: 'action.disabledBackground' },
+                        transition: 'all 0.2s'
                       }}
                     >
-                      <SendRoundedIcon />
+                      <SendRoundedIcon fontSize="small" />
                     </IconButton>
-                  </Stack>
+                  </Paper>
                 </Box>
               </>
             ) : (

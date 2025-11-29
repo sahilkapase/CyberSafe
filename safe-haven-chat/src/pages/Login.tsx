@@ -290,6 +290,16 @@ const Login = () => {
                   Sign Up
                 </MuiLink>
               </Typography>
+              <Box sx={{ mt: 2 }}>
+                <MuiLink
+                  component="button"
+                  variant="caption"
+                  onClick={() => navigate('/admin')}
+                  sx={{ cursor: 'pointer', color: 'text.disabled', textDecoration: 'none', '&:hover': { color: 'primary.main' } }}
+                >
+                  Admin Login
+                </MuiLink>
+              </Box>
             </Box>
           </form>
         </Box>

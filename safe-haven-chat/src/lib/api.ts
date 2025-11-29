@@ -20,7 +20,14 @@ export interface FriendRequestDetail {
 }
 
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
+export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
+export const BASE_URL = API_BASE_URL.replace('/api/v1', '');
+
+export const getAssetUrl = (path: string) => {
+    if (!path) return '';
+    if (path.startsWith('http') || path.startsWith('data:')) return path;
+    return `${BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
+};
 
 // Helper to get token
 const getToken = () => localStorage.getItem("token");
@@ -258,6 +265,17 @@ export const apiClient = {
         return request(`/admin/users/${userId}/unblock`, {
             method: "POST"
         });
+    },
+    getReports: async () => {
+        return request("/admin/reports");
+    },
+    resolveReport: async (reportId: number) => {
+        return request(`/admin/reports/${reportId}/resolve`, {
+            method: "POST"
+        });
+    },
+    getIncidents: async () => {
+        return request("/admin/incidents");
     }
 };
 

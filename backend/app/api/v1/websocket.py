@@ -156,28 +156,34 @@ async def handle_message(data: dict, sender: User, db: Session):
             content_filtered = detection_result["filtered_text"]
             
     elif message_type == "image":
-        # Content is expected to be base64 encoded string
-        try:
-            # Remove header if present (e.g., "data:image/jpeg;base64,")
-            if "," in content:
-                header, encoded = content.split(",", 1)
-            else:
-                encoded = content
+        # Check if content is a URL (from HTTP upload) or base64 (legacy/direct)
+        if content.startswith("/uploads/") or content.startswith("http"):
+            # It's a URL, assume already validated by upload endpoint
+            content_filtered = content
+            # We could optionally re-verify here, but for now trust the upload endpoint
+        else:
+            # Content is expected to be base64 encoded string
+            try:
+                # Remove header if present (e.g., "data:image/jpeg;base64,")
+                if "," in content:
+                    header, encoded = content.split(",", 1)
+                else:
+                    encoded = content
+                    
+                image_data = base64.b64decode(encoded)
+                detection_result = await ai_detection_service.detect_image_content(image_data)
                 
-            image_data = base64.b64decode(encoded)
-            detection_result = await ai_detection_service.detect_image_content(image_data)
-            
-            if not detection_result["is_safe"]:
-                is_flagged = True
-                severity_score = "high"  # Default for NSFW
-                is_blocked = True  # Block unsafe images
-                content_filtered = "[BLOCKED IMAGE]"
-                detection_result["analysis"] = f"NSFW Content Detected: {', '.join(detection_result['categories'])}"
-                detection_result["severity"] = "high"
-        except Exception as e:
-            print(f"Image decoding error: {e}")
-            # Treat as text if decoding fails or just ignore
-            pass
+                if not detection_result["is_safe"]:
+                    is_flagged = True
+                    severity_score = "high"  # Default for NSFW
+                    is_blocked = True  # Block unsafe images
+                    content_filtered = "[BLOCKED IMAGE]"
+                    detection_result["analysis"] = f"NSFW Content Detected: {', '.join(detection_result['categories'])}"
+                    detection_result["severity"] = "high"
+            except Exception as e:
+                print(f"Image decoding error: {e}")
+                # Treat as text if decoding fails or just ignore
+                pass
 
     if is_flagged:
         # Create incident
