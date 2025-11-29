@@ -13,7 +13,7 @@ import Chat from "./pages/Chat";
 import Friends from "./pages/Friends";
 import Profile from "./pages/Profile";
 import MentalHealth from "./pages/MentalHealth";
-import Admin from "./pages/Admin";
+import AdminPanel from "./pages/AdminPanel";
 import AdminLogin from "./pages/AdminLogin";
 import NotFound from "./pages/NotFound";
 import MainLayout from "./components/layout/MainLayout";
@@ -45,7 +45,7 @@ const App = () => (
               <Route path="/profile" element={<Profile />} />
               <Route path="/mental-health" element={<MentalHealth />} />
               <Route path="/admin" element={<AdminLogin />} />
-              <Route path="/admin/dashboard" element={<Admin />} />
+              <Route path="/admin/dashboard" element={<AdminPanel />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </MainLayout>

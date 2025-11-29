@@ -84,6 +84,7 @@ const Chat = () => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [alertDialogOpen, setAlertDialogOpen] = useState(false);
   const [flaggedMessage, setFlaggedMessage] = useState<Message | null>(null);
+  const [isViolatorView, setIsViolatorView] = useState(false);
   const [selectedPeer, setSelectedPeer] = useState<{ id: number; username: string; avatar_url?: string | null; has_red_tag?: boolean } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
@@ -146,189 +147,6 @@ const Chat = () => {
     setSearchResults([]);
   };
 
-  useEffect(() => {
-    loadUserAndConversations();
-  }, []);
-
-  useEffect(() => {
-    if (selectedUserId !== null) {
-      loadMessages(selectedUserId);
-    }
-  }, [selectedUserId]);
-
-  useEffect(() => {
-    const state = location.state as
-      | {
-        user?: { id: number; username: string; avatar_url?: string | null };
-        userId?: number;
-      }
-      | undefined;
-    if (state?.user) {
-      setSelectedUserId(state.user.id);
-      setSelectedPeer({
-        id: state.user.id,
-        username: state.user.username,
-        avatar_url: state.user.avatar_url,
-      });
-    } else if (state?.userId) {
-      setSelectedUserId(state.userId);
-    }
-  }, [location]);
-
-  useEffect(() => {
-    if (!isMobile && selectedUserId === null && conversations.length > 0) {
-      setSelectedUserId(conversations[0].user.id);
-    }
-    if (selectedUserId !== null && conversations.length > 0) {
-      const existing = conversations.find((c) => c.user.id === selectedUserId);
-      if (existing) {
-        setSelectedPeer({
-          id: existing.user.id,
-          username: existing.user.username,
-          avatar_url: existing.user.avatar_url,
-          has_red_tag: existing.user.has_red_tag,
-        });
-      }
-    }
-  }, [conversations, selectedUserId, isMobile]);
-
-  useEffect(() => {
-    const query = conversationSearch.trim();
-    if (query.length < 2) {
-      setSearchResults([]);
-      setSearchLoading(false);
-      return;
-    }
-
-    let active = true;
-    setSearchLoading(true);
-    apiClient
-      .searchUsers(query)
-      .then((users) => {
-        if (active) {
-          setSearchResults(users);
-        }
-      })
-      .catch(() => {
-        if (active) {
-          setSearchResults([]);
-        }
-      })
-      .finally(() => {
-        if (active) {
-          setSearchLoading(false);
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [conversationSearch]);
-
-  useEffect(() => {
-    wsMessages.forEach((wsMsg: WebSocketMessage) => {
-      // Handle regular messages
-      if (wsMsg.type === 'message' && wsMsg.sender_id === selectedUserId) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: wsMsg.id!,
-            sender_id: wsMsg.sender_id!,
-            receiver_id: selectedUserId,
-            content: wsMsg.content!,
-            content_filtered: (wsMsg as any).content_filtered || wsMsg.content,
-            message_type: wsMsg.message_type || 'text',
-            is_flagged: wsMsg.is_flagged || false,
-            severity_score: (wsMsg as any).severity_score,
-            created_at: wsMsg.created_at!,
-          },
-        ]);
-
-        // Check if message is flagged and from the other user
-        if (wsMsg.is_flagged && wsMsg.sender_id !== currentUser?.id) {
-          const flaggedMsg = {
-            id: wsMsg.id!,
-            sender_id: wsMsg.sender_id!,
-            receiver_id: selectedUserId,
-            content: wsMsg.content!,
-            content_filtered: (wsMsg as any).content_filtered || wsMsg.content,
-            message_type: wsMsg.message_type || 'text',
-            is_flagged: true,
-            severity_score: (wsMsg as any).severity_score,
-            created_at: wsMsg.created_at!,
-          };
-          setFlaggedMessage(flaggedMsg);
-          setAlertDialogOpen(true);
-        }
-
-        scrollToBottom();
-      }
-
-      // Handle CyberBOT warning messages
-      if (wsMsg.type === 'cyberbot_warning' && wsMsg.sender_id === 0) {
-        // Only add to messages if we're viewing the CyberBOT conversation
-        if (selectedUserId === 0) {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: wsMsg.id!,
-              sender_id: 0, // CyberBOT ID
-              receiver_id: currentUser?.id || 0,
-              content: wsMsg.content!,
-              content_filtered: wsMsg.content!,
-              message_type: 'system_warning',
-              is_flagged: false,
-              severity_score: 'info',
-              created_at: wsMsg.created_at!,
-            },
-          ]);
-          scrollToBottom();
-        }
-
-        // Always reload conversations to show CyberBOT chat in the list
-        loadUserAndConversations();
-
-        // Show popup warning to the violator (current user)
-        if (wsMsg.receiver_id === currentUser?.id) {
-          setFlaggedMessage({
-            id: wsMsg.id!,
-            sender_id: 0,
-            receiver_id: currentUser?.id,
-            content: wsMsg.content!,
-            content_filtered: wsMsg.content!,
-            message_type: 'system_warning',
-            is_flagged: false,
-            severity_score: 'high', // Force high severity for popup
-            created_at: wsMsg.created_at!,
-          });
-          setAlertDialogOpen(true);
-        }
-      }
-    });
-  }, [wsMessages, selectedUserId, currentUser]);
-
-  // Handle signaling messages
-  useEffect(() => {
-    const lastMessage = wsMessages[wsMessages.length - 1];
-    if (lastMessage && ['offer', 'answer', 'ice-candidate', 'call_end'].includes(lastMessage.type)) {
-      handleSignal(lastMessage);
-
-      if (lastMessage.type === 'offer' && callStatus === 'idle') {
-        setIncomingCall({
-          callerId: lastMessage.sender_id!,
-          callerName: lastMessage.sender_username || 'Unknown',
-          callerAvatar: lastMessage.sender_avatar,
-          callType: 'video' // Default to video for now, or check payload
-        });
-      } else if (lastMessage.type === 'call_end') {
-        setIncomingCall(null);
-      }
-    }
-  }, [wsMessages, handleSignal, callStatus]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -502,6 +320,188 @@ const Chat = () => {
     setAlertDialogOpen(false);
     setFlaggedMessage(null);
   };
+
+  useEffect(() => {
+    loadUserAndConversations();
+  }, []);
+
+  useEffect(() => {
+    if (selectedUserId !== null) {
+      loadMessages(selectedUserId);
+    }
+  }, [selectedUserId]);
+
+  useEffect(() => {
+    const state = location.state as
+      | {
+        user?: { id: number; username: string; avatar_url?: string | null };
+        userId?: number;
+      }
+      | undefined;
+    if (state?.user) {
+      setSelectedUserId(state.user.id);
+      setSelectedPeer({
+        id: state.user.id,
+        username: state.user.username,
+        avatar_url: state.user.avatar_url,
+      });
+    } else if (state?.userId) {
+      setSelectedUserId(state.userId);
+    }
+  }, [location]);
+
+  useEffect(() => {
+    if (!isMobile && selectedUserId === null && conversations.length > 0) {
+      setSelectedUserId(conversations[0].user.id);
+    }
+    if (selectedUserId !== null && conversations.length > 0) {
+      const existing = conversations.find((c) => c.user.id === selectedUserId);
+      if (existing) {
+        setSelectedPeer({
+          id: existing.user.id,
+          username: existing.user.username,
+          avatar_url: existing.user.avatar_url,
+          has_red_tag: existing.user.has_red_tag,
+        });
+      }
+    }
+  }, [conversations, selectedUserId, isMobile]);
+
+  useEffect(() => {
+    const query = conversationSearch.trim();
+    if (query.length < 2) {
+      setSearchResults([]);
+      setSearchLoading(false);
+      return;
+    }
+
+    let active = true;
+    setSearchLoading(true);
+    apiClient
+      .searchUsers(query)
+      .then((users) => {
+        if (active) {
+          setSearchResults(users);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setSearchResults([]);
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setSearchLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [conversationSearch]);
+
+  useEffect(() => {
+    wsMessages.forEach((wsMsg: WebSocketMessage) => {
+      // Handle regular messages
+      if (wsMsg.type === 'message' && wsMsg.sender_id === selectedUserId) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: wsMsg.id!,
+            sender_id: wsMsg.sender_id!,
+            receiver_id: selectedUserId,
+            content: wsMsg.content!,
+            content_filtered: (wsMsg as any).content_filtered || wsMsg.content,
+            message_type: wsMsg.message_type || 'text',
+            is_flagged: wsMsg.is_flagged || false,
+            severity_score: (wsMsg as any).severity_score,
+            created_at: wsMsg.created_at!,
+          },
+        ]);
+
+        // Check if message is flagged and from the other user
+        if (wsMsg.is_flagged && wsMsg.sender_id !== currentUser?.id) {
+          const flaggedMsg = {
+            id: wsMsg.id!,
+            sender_id: wsMsg.sender_id!,
+            receiver_id: selectedUserId,
+            content: wsMsg.content!,
+            content_filtered: (wsMsg as any).content_filtered || wsMsg.content,
+            message_type: wsMsg.message_type || 'text',
+            is_flagged: true,
+            severity_score: (wsMsg as any).severity_score,
+            created_at: wsMsg.created_at!,
+          };
+          setFlaggedMessage(flaggedMsg);
+          setIsViolatorView(false); // Victim view
+          setAlertDialogOpen(true);
+        }
+
+        scrollToBottom();
+      }
+
+      // Handle CyberBOT warning messages
+      if (wsMsg.type === 'cyberbot_warning' && wsMsg.sender_id === 0) {
+        // Only add to messages if we're viewing the CyberBOT conversation
+        if (selectedUserId === 0) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: wsMsg.id!,
+              sender_id: 0, // CyberBOT ID
+              receiver_id: currentUser?.id || 0,
+              content: wsMsg.content!,
+              content_filtered: wsMsg.content!,
+              message_type: 'system_warning',
+              is_flagged: false,
+              severity_score: 'info',
+              created_at: wsMsg.created_at!,
+            },
+          ]);
+          scrollToBottom();
+        }
+        // Show popup warning to the violator (current user)
+        if (wsMsg.receiver_id === currentUser?.id) {
+          setFlaggedMessage({
+            id: wsMsg.id!,
+            sender_id: 0,
+            receiver_id: currentUser?.id,
+            content: wsMsg.content!,
+            content_filtered: wsMsg.content!,
+            message_type: 'system_warning',
+            is_flagged: false,
+            severity_score: 'high', // Force high severity for popup
+            created_at: wsMsg.created_at!,
+          });
+          setIsViolatorView(true); // Violator view
+          setAlertDialogOpen(true);
+        }
+      }
+    });
+  }, [wsMessages, selectedUserId, currentUser]);
+
+  // Handle signaling messages
+  useEffect(() => {
+    const lastMessage = wsMessages[wsMessages.length - 1];
+    if (lastMessage && ['offer', 'answer', 'ice-candidate', 'call_end'].includes(lastMessage.type)) {
+      handleSignal(lastMessage);
+
+      if (lastMessage.type === 'offer' && callStatus === 'idle') {
+        setIncomingCall({
+          callerId: lastMessage.sender_id!,
+          callerName: lastMessage.sender_username || 'Unknown',
+          callerAvatar: lastMessage.sender_avatar,
+          callType: 'video' // Default to video for now, or check payload
+        });
+      } else if (lastMessage.type === 'call_end') {
+        setIncomingCall(null);
+      }
+    }
+  }, [wsMessages, handleSignal, callStatus]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   if (loading) {
     return (
@@ -935,8 +935,9 @@ const Chat = () => {
         onReportOnly={handleReportOnly}
         messageContent={flaggedMessage?.content_filtered || ''}
         severity={flaggedMessage?.severity_score as any || 'medium'}
-        senderName={selectedPeer?.username || 'Unknown User'}
+        senderName={isViolatorView ? 'You' : (selectedPeer?.username || 'Unknown User')}
         categories={['cyberbullying']}
+        isViolator={isViolatorView}
       />
       <IncomingCallDialog
         open={!!incomingCall}

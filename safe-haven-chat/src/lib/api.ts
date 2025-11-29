@@ -243,5 +243,22 @@ export const apiClient = {
         return request(`/users/block/${userId}`, {
             method: "POST",
         });
+    },
+
+    // Admin
+    getUsers: async () => {
+        return request("/admin/users");
+    },
+    blockUser: async (userId: number) => {
+        return request(`/admin/users/${userId}/block`, {
+            method: "POST"
+        });
+    },
+    unblockUser: async (userId: number) => {
+        return request(`/admin/users/${userId}/unblock`, {
+            method: "POST"
+        });
     }
 };
+
+export default apiClient;

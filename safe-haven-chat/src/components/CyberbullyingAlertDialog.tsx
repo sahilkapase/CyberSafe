@@ -38,7 +38,8 @@ const CyberbullyingAlertDialog = ({
     severity = 'medium',
     senderName = 'Unknown User',
     categories = [],
-}: CyberbullyingAlertDialogProps) => {
+    isViolator = false,
+}: CyberbullyingAlertDialogProps & { isViolator?: boolean }) => {
     const getSeverityColor = () => {
         switch (severity) {
             case 'critical':
@@ -94,10 +95,12 @@ const CyberbullyingAlertDialog = ({
                     </Box>
                     <Box sx={{ flex: 1 }}>
                         <Typography variant="h6" fontWeight={700}>
-                            Potentially Harmful Content Detected
+                            {isViolator ? 'Policy Violation Detected' : 'Potentially Harmful Content Detected'}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                            Our AI detected concerning content in this message
+                            {isViolator
+                                ? 'Your message was flagged by our safety system'
+                                : 'Our AI detected concerning content in this message'}
                         </Typography>
                     </Box>
                 </Box>
@@ -118,7 +121,7 @@ const CyberbullyingAlertDialog = ({
                     {/* Message Preview */}
                     <Alert severity={getSeverityColor()} icon={false}>
                         <Typography variant="body2" fontWeight={600} gutterBottom>
-                            Message from {senderName}:
+                            {isViolator ? 'Your Message:' : `Message from ${senderName}:`}
                         </Typography>
                         <Typography
                             variant="body2"
@@ -159,10 +162,12 @@ const CyberbullyingAlertDialog = ({
                     {/* Safety Message */}
                     <Alert severity="info" icon={<ShieldRoundedIcon />}>
                         <Typography variant="body2" fontWeight={600} gutterBottom>
-                            You're in control
+                            {isViolator ? 'Community Guidelines' : "You're in control"}
                         </Typography>
                         <Typography variant="body2">
-                            You can report this incident, block the user, or continue the conversation. Your safety is our priority.
+                            {isViolator
+                                ? 'Please review our community guidelines. Repeated violations may result in account suspension.'
+                                : 'You can report this incident, block the user, or continue the conversation. Your safety is our priority.'}
                         </Typography>
                     </Alert>
 
@@ -199,26 +204,30 @@ const CyberbullyingAlertDialog = ({
                     startIcon={<CloseRoundedIcon />}
                     sx={{ borderRadius: 2 }}
                 >
-                    Dismiss
+                    {isViolator ? 'Close' : 'Dismiss'}
                 </Button>
-                <Button
-                    onClick={onReportOnly}
-                    variant="outlined"
-                    color="warning"
-                    startIcon={<ReportRoundedIcon />}
-                    sx={{ borderRadius: 2 }}
-                >
-                    Report Only
-                </Button>
-                <Button
-                    onClick={onReportAndBlock}
-                    variant="contained"
-                    color="error"
-                    startIcon={<BlockRoundedIcon />}
-                    sx={{ borderRadius: 2 }}
-                >
-                    Report & Block User
-                </Button>
+                {!isViolator && (
+                    <>
+                        <Button
+                            onClick={onReportOnly}
+                            variant="outlined"
+                            color="warning"
+                            startIcon={<ReportRoundedIcon />}
+                            sx={{ borderRadius: 2 }}
+                        >
+                            Report Only
+                        </Button>
+                        <Button
+                            onClick={onReportAndBlock}
+                            variant="contained"
+                            color="error"
+                            startIcon={<BlockRoundedIcon />}
+                            sx={{ borderRadius: 2 }}
+                        >
+                            Report & Block User
+                        </Button>
+                    </>
+                )}
             </DialogActions>
         </Dialog>
     );
