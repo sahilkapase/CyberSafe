@@ -58,7 +58,9 @@ pip install -r requirements.txt
 4. Create `.env` file:
 ```bash
 cp .env.example .env
-# Edit .env and add your GROQ_API_KEY
+# Edit .env and add your GROQ_API_KEY = 
+HF_TOKEN = 
+SECRET_KEY = 
 ```
 
 5. Run the server:
