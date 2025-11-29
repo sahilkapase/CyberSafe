@@ -8,7 +8,7 @@ import json
 import re
 from typing import Dict, Optional, Tuple, List
 from groq import Groq
-from transformers import pipeline
+# from transformers import pipeline  <-- Moved inside method to prevent slow import
 from PIL import Image
 import io
 import numpy as np
@@ -43,6 +43,7 @@ class AIDetectionService:
             if settings.HF_TOKEN:
                 os.environ["HF_TOKEN"] = settings.HF_TOKEN
             
+            from transformers import pipeline
             self.image_classifier = pipeline(
                 "image-classification",
                 model="Falconsai/nsfw_image_detection",
