@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     HF_TOKEN: str = ""
     
     # CORS
-    CORS_ORIGINS: List[str] = Field(
+    CORS_ORIGINS: List[str] | str = Field(
         default_factory=lambda: [
             "http://localhost:5173",
             "http://localhost:3000",
