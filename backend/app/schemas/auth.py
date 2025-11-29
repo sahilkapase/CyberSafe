@@ -17,6 +17,13 @@ class UserLogin(BaseModel):
     password: str
 
 
+class SocialLoginRequest(BaseModel):
+    email: EmailStr
+    username: str
+    provider: str
+    avatar_url: Optional[str] = None
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str
@@ -26,8 +33,8 @@ class UserResponse(BaseModel):
     id: int
     username: str
     email: str
-    full_name: Optional[str]
-    avatar_url: Optional[str]
+    full_name: Optional[str] = None
+    avatar_url: Optional[str] = None
     sensitivity_level: str
     role: str
     has_red_tag: bool

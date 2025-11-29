@@ -3,7 +3,7 @@ Application configuration settings
 """
 from pydantic_settings import BaseSettings
 from pydantic import Field, field_validator
-from typing import List
+from typing import List, Any
 import os
 
 
@@ -22,7 +22,6 @@ class Settings(BaseSettings):
     # HuggingFace
     HF_TOKEN: str = ""
     
-    from typing import Any
 
     # CORS
     # Using Any to prevent pydantic-settings from trying to JSON parse the env var

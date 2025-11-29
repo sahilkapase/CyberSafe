@@ -58,8 +58,32 @@ const Login = () => {
     }
   };
 
-  const handleSocialLogin = (provider: string) => {
-    console.log('Social login:', provider);
+  const handleSocialLogin = async (provider: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Simulate social login data
+      const mockData = {
+        email: provider === 'google' ? 'demo.google@example.com' : 'demo.facebook@example.com',
+        username: provider === 'google' ? 'Google User' : 'Facebook User',
+        provider: provider,
+        avatar_url: provider === 'google'
+          ? 'https://lh3.googleusercontent.com/a/ACg8ocIq8dJ0PO7_kRj_8j_kRj_8j_kRj_8j_kRj_8j_kRj_8=s96-c'
+          : 'https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=10158473684736847&height=50&width=50&ext=1699999999&hash=AeQ_kRj_8j_kRj_8'
+      };
+
+      await apiClient.socialLogin(
+        mockData.email,
+        mockData.username,
+        mockData.provider,
+        mockData.avatar_url
+      );
+      navigate('/chat');
+    } catch (err: any) {
+      setError(err.message || `${provider} login failed.`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -237,6 +261,7 @@ const Login = () => {
                 variant="outlined"
                 startIcon={<GoogleIcon />}
                 onClick={() => handleSocialLogin('google')}
+                disabled={loading}
                 sx={{ borderRadius: 2, py: 1 }}
               >
                 Google
@@ -246,6 +271,7 @@ const Login = () => {
                 variant="outlined"
                 startIcon={<FacebookIcon />}
                 onClick={() => handleSocialLogin('facebook')}
+                disabled={loading}
                 sx={{ borderRadius: 2, py: 1 }}
               >
                 Facebook

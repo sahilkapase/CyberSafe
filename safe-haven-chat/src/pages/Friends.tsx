@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
-  Alert,
-  Avatar,
   Box,
   Button,
-  Chip,
-  CircularProgress,
-  Container,
+  Avatar,
   IconButton,
+  CircularProgress,
+  Chip,
+  Container,
+  Alert,
   InputAdornment,
   List,
   ListItem,
@@ -20,7 +20,7 @@ import {
   Tabs,
   TextField,
   Typography,
-  Grid,
+  Grid2 as Grid,
 } from '@mui/material';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import PersonAddRoundedIcon from '@mui/icons-material/PersonAddRounded';
@@ -56,7 +56,7 @@ const Friends = () => {
     try {
       setLoading(true);
       const [user, friendList, receivedRequests, myRequests] = await Promise.all([
-        apiClient.getCurrentUser(),
+        apiClient.getMe(),
         apiClient.getFriendsList(),
         apiClient.getReceivedFriendRequests(),
         apiClient.getFriendRequests(),
@@ -119,6 +119,7 @@ const Friends = () => {
     const outgoing = allRequests.find(
       (req) => req.sender.id === currentUser?.id && req.receiver.id === userId && req.status === 'pending'
     );
+
     if (outgoing) return 'outgoing';
 
     return 'none';

@@ -10,7 +10,7 @@ from app.core.database import get_db
 from app.core.security import verify_password, get_password_hash, create_access_token, decode_access_token
 from app.core.config import settings
 from app.models.user import User, UserRole
-from app.schemas.auth import UserSignup, UserLogin, Token, UserResponse
+from app.schemas.auth import UserSignup, UserLogin, Token, UserResponse, SocialLoginRequest
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
@@ -100,6 +100,46 @@ async def login(
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is inactive"
+        )
+    
+    access_token = create_access_token(
+        data={"sub": str(user.id), "email": user.email, "role": user.role}
+    )
+    
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.post("/social-login", response_model=Token)
+async def social_login(
+    login_data: SocialLoginRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Simulated social login.
+    Finds existing user by email or creates a new one.
+    """
+    user = db.query(User).filter(User.email == login_data.email).first()
+    
+    if not user:
+        # Create new user for social login
+        # Use a dummy password since they login via social provider
+        hashed_password = get_password_hash("social_login_dummy_password")
+        user = User(
+            username=login_data.username,
+            email=login_data.email,
+            hashed_password=hashed_password,
+            full_name=login_data.username,
+            avatar_url=login_data.avatar_url,
+            is_active=True
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
     
     if not user.is_active:
         raise HTTPException(

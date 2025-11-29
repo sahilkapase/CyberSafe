@@ -33,7 +33,7 @@ const Sidebar = () => {
     useEffect(() => {
         const loadUser = async () => {
             try {
-                const userData = await apiClient.getCurrentUser();
+                const userData = await apiClient.getMe();
                 setUser(userData);
             } catch (error) {
                 console.error('Failed to load user', error);

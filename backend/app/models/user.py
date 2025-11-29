@@ -67,4 +67,18 @@ class User(Base):
         foreign_keys="Report.reported_user_id",
         back_populates="reported_user",
     )
+    
+    # Blocking
+    blocking = relationship(
+        "Block",
+        foreign_keys="Block.blocker_id",
+        back_populates="blocker",
+        cascade="all, delete-orphan",
+    )
+    blocked_by = relationship(
+        "Block",
+        foreign_keys="Block.blocked_id",
+        back_populates="blocked",
+        cascade="all, delete-orphan",
+    )
 

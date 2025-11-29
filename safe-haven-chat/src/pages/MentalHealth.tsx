@@ -45,7 +45,7 @@ const MentalHealth = () => {
 
   useEffect(() => {
     apiClient
-      .getCurrentUser()
+      .getMe()
       .then((user) => setIsAdmin(user.role === 'admin'))
       .catch(() => setIsAdmin(false));
   }, []);

@@ -1,19 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
-  Alert,
-  Avatar,
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  Container,
-  IconButton,
   TextField,
   Typography,
   Paper,
   Stack,
   Divider,
-  Grid,
+  Grid2 as Grid,
+  Box,
+  Container,
+  IconButton,
+  CircularProgress,
+  Alert,
+  Avatar,
+  Button,
+  Chip,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
@@ -48,7 +48,7 @@ const Profile = () => {
     const loadProfile = async () => {
       try {
         setLoading(true);
-        const user = await apiClient.getCurrentUser();
+        const user = await apiClient.getMe();
         setIsAdmin(user.role === 'admin');
         setWarningCount(user.warning_count || 0);
         setHasRedTag(user.has_red_tag);

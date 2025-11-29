@@ -48,9 +48,24 @@ async def send_friend_request(
     ).first()
     
     if existing_request:
+        if existing_request.status == FriendRequestStatus.REJECTED:
+            # Reactivate rejected request
+            existing_request.status = FriendRequestStatus.PENDING
+            existing_request.sender_id = current_user.id
+            existing_request.receiver_id = request_data.receiver_id
+            db.commit()
+            db.refresh(existing_request)
+            return existing_request
+            
+        if existing_request.status == FriendRequestStatus.ACCEPTED:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="You are already friends"
+            )
+            
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Friend request already exists"
+            detail="Friend request already pending"
         )
     
     # Create friend request

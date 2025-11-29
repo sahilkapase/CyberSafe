@@ -1,5 +1,25 @@
 import { toast } from "sonner";
 
+export interface UserSummary {
+    id: number;
+    username: string;
+    email: string;
+    full_name?: string;
+    role?: string;
+    avatar_url?: string;
+    has_red_tag: boolean;
+    is_blocked: boolean;
+}
+
+export interface FriendRequestDetail {
+    id: number;
+    status: "pending" | "accepted" | "rejected";
+    created_at: string;
+    sender: UserSummary;
+    receiver: UserSummary;
+}
+
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
 
 // Helper to get token
@@ -81,6 +101,23 @@ export const apiClient = {
         return data;
     },
 
+    socialLogin: async (email: string, username: string, provider: string, avatarUrl?: string) => {
+        const data = await request("/auth/social-login", {
+            method: "POST",
+            body: JSON.stringify({
+                email,
+                username,
+                provider,
+                avatar_url: avatarUrl
+            }),
+        });
+
+        if (data.access_token) {
+            localStorage.setItem("token", data.access_token);
+        }
+        return data;
+    },
+
     signup: async (userData: any) => {
         return request("/auth/signup", {
             method: "POST",
@@ -93,20 +130,46 @@ export const apiClient = {
     },
 
     // Friends
+    getFriendsList: async () => {
+        return request("/friends/list");
+    },
+
     getFriends: async () => {
-        return request("/friends");
+        return request("/friends/list");
+    },
+
+    getReceivedFriendRequests: async () => {
+        return request("/friends/requests/received");
+    },
+
+    getFriendRequests: async () => {
+        return request("/friends/requests");
     },
 
     searchUsers: async (query: string) => {
         return request(`/friends/search?query=${encodeURIComponent(query)}`);
     },
 
+    sendFriendRequest: async (receiverId: number) => {
+        return request("/friends/request", {
+            method: "POST",
+            body: JSON.stringify({ receiver_id: receiverId }),
+        });
+    },
+
     addFriend: async (userId: number) => {
-        return request(`/friends/request/${userId}`, { method: "POST" });
+        return apiClient.sendFriendRequest(userId);
+    },
+
+    respondToFriendRequest: async (requestId: number, status: "accepted" | "rejected") => {
+        return request(`/friends/request/${requestId}`, {
+            method: "PUT",
+            body: JSON.stringify({ status }),
+        });
     },
 
     acceptFriendRequest: async (requestId: number) => {
-        return request(`/friends/accept/${requestId}`, { method: "POST" });
+        return apiClient.respondToFriendRequest(requestId, "accepted");
     },
 
     // Messages
@@ -114,8 +177,12 @@ export const apiClient = {
         return request("/messages/conversations");
     },
 
-    getMessages: async (userId: number) => {
+    getConversation: async (userId: number) => {
         return request(`/messages/conversation/${userId}`);
+    },
+
+    getMessages: async (userId: number) => {
+        return apiClient.getConversation(userId);
     },
 
     sendMessage: async (receiverId: number, content: string, messageType: "text" | "image" = "text", fileUrl?: string) => {
@@ -139,7 +206,7 @@ export const apiClient = {
         });
     },
 
-    // Support
+    // Support & Reporting
     getMentalHealthResources: async () => {
         return request("/support/resources");
     },
@@ -147,7 +214,34 @@ export const apiClient = {
     chatWithCounselor: async (message: string) => {
         return request("/support/chat", {
             method: "POST",
-            body: JSON.stringify({ message }),
+            body: JSON.stringify({ message, history: [] }),
+        });
+    },
+
+    mentalHealthChat: async (message: string) => {
+        return apiClient.chatWithCounselor(message);
+    },
+
+    reportIncident: async (data: { reported_user_id: number; reason: string; description: string; message_id?: number }) => {
+        return request("/support/report", {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    },
+
+    // Utils
+    setToken: (token: string | null) => {
+        if (token) {
+            localStorage.setItem("token", token);
+        } else {
+            localStorage.removeItem("token");
+        }
+    },
+
+    // Placeholder for missing backend endpoint
+    blockUserDirectly: async (userId: number) => {
+        return request(`/users/block/${userId}`, {
+            method: "POST",
         });
     }
 };

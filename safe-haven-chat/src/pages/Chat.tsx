@@ -286,7 +286,7 @@ const Chat = () => {
 
   const loadUserAndConversations = async () => {
     try {
-      const user = await apiClient.getCurrentUser();
+      const user = await apiClient.getMe();
       setCurrentUser(user);
 
       const convos = await apiClient.getConversations();
@@ -405,12 +405,12 @@ const Chat = () => {
 
     try {
       // Report the incident
-      await apiClient.reportIncident(
-        flaggedMessage.sender_id,
-        'cyberbullying',
-        `AI detected harmful content: ${flaggedMessage.content_filtered}`,
-        flaggedMessage.id
-      );
+      await apiClient.reportIncident({
+        reported_user_id: flaggedMessage.sender_id,
+        reason: 'cyberbullying',
+        description: `AI detected harmful content: ${flaggedMessage.content_filtered}`,
+        message_id: flaggedMessage.id
+      });
 
       // Block the user
       await apiClient.blockUserDirectly(flaggedMessage.sender_id);
@@ -433,12 +433,12 @@ const Chat = () => {
 
     try {
       // Report the incident
-      await apiClient.reportIncident(
-        flaggedMessage.sender_id,
-        'cyberbullying',
-        `AI detected harmful content: ${flaggedMessage.content_filtered}`,
-        flaggedMessage.id
-      );
+      await apiClient.reportIncident({
+        reported_user_id: flaggedMessage.sender_id,
+        reason: 'cyberbullying',
+        description: `AI detected harmful content: ${flaggedMessage.content_filtered}`,
+        message_id: flaggedMessage.id
+      });
 
       // Close dialog
       setAlertDialogOpen(false);

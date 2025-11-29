@@ -36,7 +36,7 @@ const AdminLogin = () => {
             const response = await apiClient.login(email, password);
 
             // Check if user is admin
-            const user = await apiClient.getCurrentUser();
+            const user = await apiClient.getMe();
             if (user.role !== 'admin') {
                 setError('Access denied. Admin privileges required.');
                 apiClient.setToken(null);

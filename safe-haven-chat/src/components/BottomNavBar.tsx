@@ -17,7 +17,7 @@ const BottomNavBar = () => {
   useEffect(() => {
     const checkAdmin = async () => {
       try {
-        const user = await apiClient.getCurrentUser();
+        const user = await apiClient.getMe();
         setIsAdmin(user.role === 'admin');
       } catch (error) {
         console.error('Failed to check admin status', error);

@@ -1,19 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
-    Box,
-    Button,
-    Card,
-    CardActionArea,
-    CardContent,
-    Container,
-    IconButton,
     Paper,
     Stack,
     Typography,
     useTheme,
     Avatar,
     LinearProgress,
-    Grid,
+    Grid2 as Grid,
+    Box,
+    Container,
+    IconButton,
+    Card,
+    CardActionArea,
+    Button,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import ChatBubbleRoundedIcon from '@mui/icons-material/ChatBubbleRounded';
@@ -36,7 +35,7 @@ const Home = () => {
     useEffect(() => {
         const loadUser = async () => {
             try {
-                const userData = await apiClient.getCurrentUser();
+                const userData = await apiClient.getMe();
                 setUser(userData);
             } catch (error) {
                 console.error('Failed to load user:', error);
