@@ -24,11 +24,14 @@ import CancelRoundedIcon from '@mui/icons-material/CancelRounded';
 import VerifiedUserRoundedIcon from '@mui/icons-material/VerifiedUserRounded';
 import GppBadRoundedIcon from '@mui/icons-material/GppBadRounded';
 import SecurityRoundedIcon from '@mui/icons-material/SecurityRounded';
+import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import { apiClient } from '@/lib/api';
 import AppNav from '@/components/AppNav';
+import { useAuth } from '../context/AuthContext';
 
 const Profile = () => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [profileData, setProfileData] = useState({
     name: '',
@@ -289,6 +292,17 @@ const Profile = () => {
                         Admin Dashboard
                       </Button>
                     )}
+                    <Divider sx={{ my: 1 }} />
+                    <Button
+                      variant="contained"
+                      color="error"
+                      fullWidth
+                      onClick={logout}
+                      startIcon={<LogoutRoundedIcon />}
+                      sx={{ justifyContent: 'flex-start', borderRadius: 3 }}
+                    >
+                      Logout
+                    </Button>
                   </Stack>
                 </Paper>
               </Stack>
