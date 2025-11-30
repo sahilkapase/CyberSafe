@@ -14,25 +14,67 @@ def fix_enums_robust():
         trans = conn.begin()
         try:
             print("Migrating 'userrole' type...")
+            # 0. Drop default
+            conn.execute(text("ALTER TABLE users ALTER COLUMN role DROP DEFAULT"))
+
             # 1. Rename old type
-            conn.execute(text("ALTER TYPE userrole RENAME TO userrole_old"))
-            # 2. Create new type with lowercase values
-            conn.execute(text("CREATE TYPE userrole AS ENUM('user', 'admin')"))
-            # 3. Convert column to use new type, lowercasing the values
+            try:
+                with conn.begin_nested():
+                    conn.execute(text("ALTER TYPE userrole RENAME TO userrole_old"))
+            except Exception as e:
+                print(f"Note: Could not rename userrole: {e}")
+
+            # 2. Create new type
+            try:
+                with conn.begin_nested():
+                    conn.execute(text("CREATE TYPE userrole AS ENUM('user', 'admin')"))
+            except Exception as e:
+                print(f"Note: Could not create userrole: {e}")
+
+            # 3. Convert column
             conn.execute(text("ALTER TABLE users ALTER COLUMN role TYPE userrole USING lower(role::text)::userrole"))
+            
             # 4. Drop old type
-            conn.execute(text("DROP TYPE userrole_old"))
+            try:
+                with conn.begin_nested():
+                    conn.execute(text("DROP TYPE userrole_old"))
+            except Exception:
+                pass
+            
+            # 5. Restore default
+            conn.execute(text("ALTER TABLE users ALTER COLUMN role SET DEFAULT 'user'::userrole"))
             print("Successfully migrated 'userrole'.")
 
             print("Migrating 'safetycolor' type...")
-            # 1. Rename old type
-            conn.execute(text("ALTER TYPE safetycolor RENAME TO safetycolor_old"))
-            # 2. Create new type with lowercase values
-            conn.execute(text("CREATE TYPE safetycolor AS ENUM('green', 'yellow', 'red')"))
-            # 3. Convert column to use new type, lowercasing the values
+            # 0. Drop default
+            conn.execute(text("ALTER TABLE users ALTER COLUMN safety_color DROP DEFAULT"))
+
+            # 1. Rename old type (Use RENAME instead of DROP because column depends on it)
+            try:
+                with conn.begin_nested():
+                    conn.execute(text("ALTER TYPE safetycolor RENAME TO safetycolor_old"))
+            except Exception as e:
+                print(f"Note: Could not rename safetycolor: {e}")
+
+            # 2. Create new type
+            try:
+                with conn.begin_nested():
+                    conn.execute(text("CREATE TYPE safetycolor AS ENUM('green', 'yellow', 'red')"))
+            except Exception as e:
+                print(f"Note: Could not create safetycolor: {e}")
+
+            # 3. Convert column
             conn.execute(text("ALTER TABLE users ALTER COLUMN safety_color TYPE safetycolor USING lower(safety_color::text)::safetycolor"))
+            
             # 4. Drop old type
-            conn.execute(text("DROP TYPE safetycolor_old"))
+            try:
+                with conn.begin_nested():
+                    conn.execute(text("DROP TYPE safetycolor_old"))
+            except Exception:
+                pass
+            
+            # 5. Restore default
+            conn.execute(text("ALTER TABLE users ALTER COLUMN safety_color SET DEFAULT 'green'::safetycolor"))
             print("Successfully migrated 'safetycolor'.")
 
             trans.commit()
