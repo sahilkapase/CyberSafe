@@ -20,6 +20,11 @@ class SafetyColor(str, enum.Enum):
     RED = "red"
 
 
+class UserRole(str, enum.Enum):
+    USER = "user"
+    ADMIN = "admin"
+
+
 class User(Base):
     __tablename__ = "users"
     
