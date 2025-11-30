@@ -45,10 +45,10 @@ class User(Base):
     sensitivity_level = Column(SQLEnum(SensitivityLevel), default=SensitivityLevel.MEDIUM)
     is_active = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)
-    role = Column(SQLEnum(UserRole), default=UserRole.USER)
+    role = Column(SQLEnum(UserRole, values_callable=lambda obj: [e.value for e in obj]), default=UserRole.USER)
     
     # Tags and warnings
-    safety_color = Column(SQLEnum(SafetyColor), default=SafetyColor.GREEN)
+    safety_color = Column(SQLEnum(SafetyColor, values_callable=lambda obj: [e.value for e in obj]), default=SafetyColor.GREEN)
     has_red_tag = Column(Boolean, default=False)
     warning_count = Column(Integer, default=0)
     is_blocked = Column(Boolean, default=False)
