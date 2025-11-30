@@ -81,8 +81,15 @@ async def send_message(
             current_user.warning_count += 1
             
             # Check thresholds
+            from app.models.user import SafetyColor
+            
+            if current_user.warning_count >= 1:
+                current_user.safety_color = SafetyColor.YELLOW
+            
             if current_user.warning_count >= 3:
                 current_user.has_red_tag = True
+                current_user.safety_color = SafetyColor.RED
+                
             if current_user.warning_count >= 5:
                 current_user.is_blocked = True
                 is_blocked = True
@@ -125,40 +132,11 @@ async def upload_image(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Upload and validate image"""
+    """Upload and validate image with NSFW detection"""
     # Read image data
     image_data = await file.read()
     
-    # Detect inappropriate content
-    detection_result = await ai_detection_service.detect_image_content(image_data)
-    
-    if not detection_result["is_safe"]:
-        # Log incident
-        incident = Incident(
-            user_id=current_user.id,
-            severity=SeverityLevel.HIGH,
-            detected_content=f"Inappropriate image: {file.filename}",
-            ai_analysis=f"NSFW score: {detection_result['nsfw_score']}, Categories: {detection_result['categories']}",
-            detection_model="huggingface-nsfw",
-            confidence_score=str(detection_result["confidence"])
-        )
-        
-        db.add(incident)
-        current_user.warning_count += 1
-        
-        if current_user.warning_count >= 3:
-            current_user.has_red_tag = True
-        if current_user.warning_count >= 5:
-            current_user.is_blocked = True
-        
-        db.commit()
-        
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Image contains inappropriate content and cannot be sent"
-        )
-    
-    # Save image (in production, use cloud storage)
+    # Save image first (needed for NSFW detection)
     import os
     from pathlib import Path
     upload_dir = Path("./uploads")
@@ -168,10 +146,40 @@ async def upload_image(
     with open(file_path, "wb") as f:
         f.write(image_data)
     
+    # Run NSFW detection
+    from app.services.nsfw_detection import nsfw_detection_service
+    detection_result = await nsfw_detection_service.detect_nsfw(str(file_path))
+    
+    is_nsfw = detection_result['is_nsfw']
+    confidence = detection_result['confidence']
+    
+    # Log if NSFW detected (but don't block - just blur in UI)
+    if is_nsfw:
+        incident = Incident(
+            user_id=current_user.id,
+            severity=SeverityLevel.MEDIUM,
+            detected_content=f"NSFW image: {file.filename}",
+            ai_analysis=f"NSFW confidence: {confidence:.2f}, Labels: {', '.join(detection_result['labels'])}",
+            detection_model="nudenet",
+            confidence_score=str(confidence)
+        )
+        
+        db.add(incident)
+        current_user.warning_count += 1
+        
+        if current_user.warning_count >= 3:
+            current_user.has_red_tag = True
+        
+        db.commit()
+    
     return {
         "file_url": f"/uploads/{file_path.name}",
-        "is_safe": True
+        "is_safe": not is_nsfw,
+        "is_nsfw": is_nsfw,
+        "nsfw_confidence": confidence,
+        "labels": detection_result.get('labels', [])
     }
+
 
 
 @router.get("/conversation/{user_id}", response_model=List[MessageResponse])

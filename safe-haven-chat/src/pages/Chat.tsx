@@ -748,78 +748,100 @@ const Chat = () => {
                 </Box>
 
                 {/* Messages Area */}
-                <Box sx={{ flex: 1, overflowY: 'auto', p: 3, bgcolor: 'rgba(249,250,251, 0.5)', backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
-                  {messages.map((msg) => {
-                    const isOwn = msg.sender_id === currentUser?.id;
-                    const isCyberBOT = msg.sender_id === 0 || msg.message_type === 'system_warning';
-                    return (
-                      <Box
-                        key={msg.id}
-                        sx={{
-                          display: 'flex',
-                          justifyContent: isCyberBOT ? 'center' : isOwn ? 'flex-end' : 'flex-start',
-                          mb: 2,
-                        }}
-                      >
+                <Box sx={{
+                  flex: 1,
+                  overflowY: 'auto',
+                  p: 3,
+                  position: 'relative',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundImage: `url(${getAssetUrl('img4.jpg')})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    opacity: 0.1,
+                    zIndex: 0,
+                    pointerEvents: 'none'
+                  }
+                }}>
+                  {/* Content wrapper to ensure z-index above background */}
+                  <Box sx={{ position: 'relative', zIndex: 1 }}>
+                    {messages.map((msg) => {
+                      const isOwn = msg.sender_id === currentUser?.id;
+                      const isCyberBOT = msg.sender_id === 0 || msg.message_type === 'system_warning';
+                      return (
                         <Box
+                          key={msg.id}
                           sx={{
-                            maxWidth: isCyberBOT ? '85%' : '70%',
-                            p: 2,
-                            borderRadius: 3,
-                            borderTopRightRadius: isOwn ? 0 : 3,
-                            borderTopLeftRadius: isOwn ? 3 : 0,
-                            bgcolor: isCyberBOT ? 'warning.light' : isOwn ? 'primary.main' : 'white',
-                            color: isCyberBOT ? 'warning.dark' : isOwn ? 'white' : 'text.primary',
-                            boxShadow: isCyberBOT ? '0 4px 12px rgba(237, 108, 2, 0.2)' : isOwn ? '0 4px 12px rgba(37, 99, 235, 0.3)' : '0 2px 8px rgba(0,0,0,0.05)',
-                            background: isCyberBOT ? 'linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%)' : isOwn ? 'var(--gradient-primary)' : 'white',
-                            border: isCyberBOT ? '2px solid' : 'none',
-                            borderColor: isCyberBOT ? 'warning.main' : 'transparent',
-                            position: 'relative',
+                            display: 'flex',
+                            justifyContent: isCyberBOT ? 'center' : isOwn ? 'flex-end' : 'flex-start',
+                            mb: 2,
                           }}
                         >
-                          {isCyberBOT && (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, pb: 1, borderBottom: '1px solid', borderColor: 'warning.main' }}>
-                              <Box sx={{ fontSize: '1.2rem' }}>🤖</Box>
-                              <Typography variant="caption" fontWeight={700} color="warning.dark">
-                                CyberBOT - Safety Alert
-                              </Typography>
-                            </Box>
-                          )}
-                          {msg.message_type === 'image' ? (
-                            <Box sx={{ borderRadius: 2, overflow: 'hidden' }}>
-                              <img
-                                src={getAssetUrl(msg.content_filtered || msg.content)}
-                                alt="Shared"
-                                style={{
-                                  maxWidth: '100%',
-                                  maxHeight: 300,
-                                  display: 'block',
-                                  filter: msg.is_flagged ? 'blur(10px)' : 'none'
-                                }}
-                              />
-                            </Box>
-                          ) : (
-                            <Typography variant="body1" sx={{ wordBreak: 'break-word', lineHeight: 1.6 }}>
-                              {msg.content_filtered || msg.content}
-                            </Typography>
-                          )}
-                          <Typography
-                            variant="caption"
+                          <Box
                             sx={{
-                              display: 'block',
-                              mt: 0.5,
-                              textAlign: 'right',
-                              opacity: 0.8,
-                              fontSize: '0.7rem',
+                              maxWidth: isCyberBOT ? '85%' : '70%',
+                              p: 2,
+                              borderRadius: 3,
+                              borderTopRightRadius: isOwn ? 0 : 3,
+                              borderTopLeftRadius: isOwn ? 3 : 0,
+                              bgcolor: isCyberBOT ? 'warning.light' : isOwn ? 'primary.main' : 'white',
+                              color: isCyberBOT ? 'warning.dark' : isOwn ? 'white' : 'text.primary',
+                              boxShadow: isCyberBOT ? '0 4px 12px rgba(237, 108, 2, 0.2)' : isOwn ? '0 4px 12px rgba(37, 99, 235, 0.3)' : '0 2px 8px rgba(0,0,0,0.05)',
+                              background: isCyberBOT ? 'linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%)' : isOwn ? 'var(--gradient-primary)' : 'white',
+                              border: isCyberBOT ? '2px solid' : 'none',
+                              borderColor: isCyberBOT ? 'warning.main' : 'transparent',
+                              position: 'relative',
                             }}
                           >
-                            {format(new Date(msg.created_at), 'h:mm a')}
-                          </Typography>
+                            {isCyberBOT && (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, pb: 1, borderBottom: '1px solid', borderColor: 'warning.main' }}>
+                                <Box sx={{ fontSize: '1.2rem' }}>🤖</Box>
+                                <Typography variant="caption" fontWeight={700} color="warning.dark">
+                                  CyberBOT - Safety Alert
+                                </Typography>
+                              </Box>
+                            )}
+                            {msg.message_type === 'image' ? (
+                              <Box sx={{ borderRadius: 2, overflow: 'hidden' }}>
+                                <img
+                                  src={getAssetUrl(msg.content_filtered || msg.content)}
+                                  alt="Shared"
+                                  style={{
+                                    maxWidth: '100%',
+                                    maxHeight: 300,
+                                    display: 'block',
+                                    filter: msg.is_flagged ? 'blur(10px)' : 'none'
+                                  }}
+                                />
+                              </Box>
+                            ) : (
+                              <Typography variant="body1" sx={{ wordBreak: 'break-word', lineHeight: 1.6 }}>
+                                {msg.content_filtered || msg.content}
+                              </Typography>
+                            )}
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                display: 'block',
+                                mt: 0.5,
+                                textAlign: 'right',
+                                opacity: 0.8,
+                                fontSize: '0.7rem',
+                              }}
+                            >
+                              {format(new Date(msg.created_at), 'h:mm a')}
+                            </Typography>
+                          </Box>
                         </Box>
-                      </Box>
-                    );
-                  })}
-                  <div ref={messagesEndRef} />
+                      );
+                    })}
+                    <div ref={messagesEndRef} />
+                  </Box>
                 </Box>
 
                 {/* Input Area */}

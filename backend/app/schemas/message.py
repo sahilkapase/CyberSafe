@@ -23,6 +23,8 @@ class MessageResponse(BaseModel):
     file_url: Optional[str]
     is_flagged: bool
     severity_score: Optional[str]
+    is_nsfw: bool = False
+    nsfw_confidence: Optional[str] = None
     created_at: datetime
     
     class Config:

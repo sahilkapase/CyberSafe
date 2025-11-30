@@ -19,7 +19,10 @@ import {
     Tabs,
     Tab,
     Card,
-    CardContent
+    CardContent,
+    Menu,
+    MenuItem,
+    Grid
 } from '@mui/material';
 import {
     Block as BlockIcon,
@@ -118,6 +121,31 @@ const AdminPanel: React.FC = () => {
         } catch (err: any) {
             toast.error('Failed to resolve report');
         }
+    };
+
+    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const [selectedUserForColor, setSelectedUserForColor] = useState<UserSummary | null>(null);
+
+    const handleColorClick = (event: React.MouseEvent<HTMLElement>, user: UserSummary) => {
+        setAnchorEl(event.currentTarget);
+        setSelectedUserForColor(user);
+    };
+
+    const handleColorClose = () => {
+        setAnchorEl(null);
+        setSelectedUserForColor(null);
+    };
+
+    const handleUpdateSafetyColor = async (color: 'green' | 'yellow' | 'red') => {
+        if (!selectedUserForColor) return;
+        try {
+            await apiClient.updateUserSafetyColor(selectedUserForColor.id, color);
+            toast.success(`User safety color updated to ${color}`);
+            loadData();
+        } catch (err: any) {
+            toast.error('Failed to update safety color');
+        }
+        handleColorClose();
     };
 
     const getSeverityColor = (severity: string | boolean) => {
@@ -224,7 +252,7 @@ const AdminPanel: React.FC = () => {
                                             <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5' }}>Email</TableCell>
                                             <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5' }}>Role</TableCell>
                                             <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5' }}>Status</TableCell>
-                                            <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5' }}>Risk Level</TableCell>
+                                            <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5' }}>Safety Status</TableCell>
                                             <TableCell align="right" sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5' }}>Actions</TableCell>
                                         </TableRow>
                                     </TableHead>
@@ -248,11 +276,15 @@ const AdminPanel: React.FC = () => {
                                                 </TableCell>
                                                 <TableCell>
                                                     <Chip
-                                                        icon={user.has_red_tag ? <WarningIcon /> : <CheckCircleIcon />}
-                                                        label={user.has_red_tag ? 'High Risk' : 'Safe'}
+                                                        label={user.safety_color?.toUpperCase() || 'GREEN'}
                                                         size="small"
-                                                        color={user.has_red_tag ? 'error' : 'success'}
+                                                        color={user.safety_color === 'red' ? 'error' : user.safety_color === 'yellow' ? 'warning' : 'success'}
+                                                        onClick={(e) => handleColorClick(e, user)}
+                                                        sx={{ cursor: 'pointer', minWidth: 80 }}
                                                     />
+                                                    <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.5 }}>
+                                                        {user.warning_count || 0} warnings
+                                                    </Typography>
                                                 </TableCell>
                                                 <TableCell align="right">
                                                     {user.role !== 'admin' && (
@@ -380,6 +412,21 @@ const AdminPanel: React.FC = () => {
                     )}
                 </>
             )}
+            <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={handleColorClose}
+            >
+                <MenuItem onClick={() => handleUpdateSafetyColor('green')}>
+                    <Chip label="GREEN" color="success" size="small" sx={{ mr: 1, minWidth: 60 }} /> Safe
+                </MenuItem>
+                <MenuItem onClick={() => handleUpdateSafetyColor('yellow')}>
+                    <Chip label="YELLOW" color="warning" size="small" sx={{ mr: 1, minWidth: 60 }} /> Caution
+                </MenuItem>
+                <MenuItem onClick={() => handleUpdateSafetyColor('red')}>
+                    <Chip label="RED" color="error" size="small" sx={{ mr: 1, minWidth: 60 }} /> Danger
+                </MenuItem>
+            </Menu>
         </Container>
     );
 };

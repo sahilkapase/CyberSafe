@@ -8,6 +8,8 @@ export interface UserSummary {
     role?: string;
     avatar_url?: string;
     has_red_tag: boolean;
+    safety_color?: "green" | "yellow" | "red";
+    warning_count?: number;
     is_blocked: boolean;
 }
 
@@ -21,6 +23,7 @@ export interface FriendRequestDetail {
 
 
 export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
+console.log("DEBUG: API_BASE_URL:", API_BASE_URL);
 export const BASE_URL = API_BASE_URL.replace('/api/v1', '');
 
 export const getAssetUrl = (path: string) => {
@@ -264,6 +267,11 @@ export const apiClient = {
     unblockUser: async (userId: number) => {
         return request(`/admin/users/${userId}/unblock`, {
             method: "POST"
+        });
+    },
+    updateUserSafetyColor: async (userId: number, color: "green" | "yellow" | "red") => {
+        return request(`/admin/users/${userId}/safety-color?color=${color}`, {
+            method: "PUT"
         });
     },
     getReports: async () => {

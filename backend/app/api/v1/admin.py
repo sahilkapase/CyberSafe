@@ -64,6 +64,34 @@ async def unblock_user(
     db.commit()
     return {"message": f"User {user.username} has been unblocked"}
 
+@router.put("/users/{user_id}/safety-color")
+async def update_user_safety_color(
+    user_id: int,
+    color: str,
+    current_user: User = Depends(check_admin_role),
+    db: Session = Depends(get_db)
+):
+    """Update user safety color"""
+    from app.models.user import SafetyColor
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    try:
+        user.safety_color = SafetyColor(color)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid color. Must be 'green', 'yellow', or 'red'"
+        )
+        
+    db.commit()
+    return {"message": f"User safety color updated to {color}"}
+
 from app.models.report import Report
 from app.models.incident import Incident
 

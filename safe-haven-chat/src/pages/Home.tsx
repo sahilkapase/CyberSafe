@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import {
     Paper,
@@ -75,7 +76,27 @@ const Home = () => {
     }
 
     return (
-        <Box sx={{ minHeight: '100vh', pb: 12, background: 'linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(240,244,255,0.5) 100%)' }}>
+        <Box
+            sx={{
+                minHeight: '100vh',
+                pb: 12,
+                position: 'relative',
+                '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundImage: 'url(/img4.jpg)',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
+                    opacity: 0.5,
+                    zIndex: -1
+                }
+            }}
+        >
             <Container maxWidth="lg" sx={{ py: 6 }}>
                 {/* Welcome Section */}
                 <Box sx={{ mb: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -139,47 +160,67 @@ const Home = () => {
                             ))}
                         </Grid>
 
-                        {/* Recent Activity Placeholder */}
+                        {/* Community Showcase Gallery */}
                         <Box sx={{ mt: 6 }}>
                             <Typography variant="h6" fontWeight={700} sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <span style={{ width: 4, height: 24, backgroundColor: 'var(--secondary)', borderRadius: 2, display: 'block' }}></span>
-                                Recent Activity
+                                Safe Community Highlights
                             </Typography>
-                            <Paper
-                                className="glass-panel"
-                                sx={{
-                                    p: 6,
-                                    textAlign: 'center',
-                                    bgcolor: 'rgba(255,255,255,0.6)',
-                                    border: '2px dashed',
-                                    borderColor: 'divider',
-                                    borderRadius: 4
-                                }}
-                            >
-                                <Box sx={{ mb: 2, opacity: 0.5 }}>
-                                    <ChatBubbleRoundedIcon sx={{ fontSize: 48, color: 'text.secondary' }} />
-                                </Box>
-                                <Typography variant="h6" color="text.primary" gutterBottom>
-                                    No recent activity
-                                </Typography>
-                                <Typography color="text.secondary" sx={{ mb: 3, maxWidth: 400, mx: 'auto' }}>
-                                    Your secure conversations and friend requests will appear here once you start interacting.
-                                </Typography>
-                                <Button
-                                    variant="contained"
-                                    endIcon={<ArrowForwardRoundedIcon />}
-                                    onClick={() => navigate('/chat')}
-                                    sx={{
-                                        borderRadius: 2,
-                                        px: 4,
-                                        py: 1,
-                                        background: 'var(--gradient-primary)',
-                                        boxShadow: 'var(--shadow-md)'
-                                    }}
-                                >
-                                    Start a conversation
-                                </Button>
-                            </Paper>
+                            <Grid container spacing={2}>
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <Card
+                                        elevation={0}
+                                        sx={{
+                                            borderRadius: 3,
+                                            overflow: 'hidden',
+                                            position: 'relative',
+                                            height: 250,
+                                            transition: 'transform 0.3s ease',
+                                            '&:hover': { transform: 'scale(1.02)' }
+                                        }}
+                                    >
+                                        <Box
+                                            component="img"
+                                            src="/img2.jpg"
+                                            alt="Secure Communication"
+                                            sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        />
+                                        <Box
+                                            sx={{
+                                                position: 'absolute',
+                                                bottom: 0,
+                                                left: 0,
+                                                right: 0,
+                                                p: 2,
+                                                background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)',
+                                                color: 'white'
+                                            }}
+                                        >
+                                            <Typography variant="subtitle1" fontWeight={700}>Secure Conversations</Typography>
+                                            <Typography variant="caption">Protected by AI</Typography>
+                                        </Box>
+                                    </Card>
+                                </Grid>
+                                <Grid size={{ xs: 12, sm: 6 }}>
+                                    <Grid container spacing={2}>
+                                        <Grid size={6}>
+                                            <Card elevation={0} sx={{ borderRadius: 3, overflow: 'hidden', height: 119 }}>
+                                                <Box component="img" src="/img3.jpg" alt="Community" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            </Card>
+                                        </Grid>
+                                        <Grid size={6}>
+                                            <Card elevation={0} sx={{ borderRadius: 3, overflow: 'hidden', height: 119 }}>
+                                                <Box component="img" src="/img4.jpg" alt="Support" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            </Card>
+                                        </Grid>
+                                        <Grid size={12}>
+                                            <Card elevation={0} sx={{ borderRadius: 3, overflow: 'hidden', height: 119 }}>
+                                                <Box component="img" src="/img6.jpg" alt="Mental Wellness" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            </Card>
+                                        </Grid>
+                                    </Grid>
+                                </Grid>
+                            </Grid>
                         </Box>
                     </Grid>
 

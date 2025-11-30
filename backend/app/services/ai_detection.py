@@ -38,6 +38,10 @@ class AIDetectionService:
         if self.image_classifier:
             return
 
+        if not settings.ENABLE_HEAVY_MODELS:
+            print("Heavy models disabled: Image classifier skipped")
+            return
+
         try:
             print("Loading image classifier model...")
             if settings.HF_TOKEN:

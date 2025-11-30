@@ -18,9 +18,15 @@ import AdminLogin from "./pages/AdminLogin";
 import NotFound from "./pages/NotFound";
 import MainLayout from "./components/layout/MainLayout";
 import Home from "./pages/Home";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 
 const RootRoute = () => {
-  const isAuthenticated = !!sessionStorage.getItem("auth_token");
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return <div>Loading...</div>; // Or a proper loading spinner
+  }
+
   return isAuthenticated ? <Home /> : <Landing />;
 };
 
@@ -33,23 +39,25 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
-          <MainLayout>
-            <Routes>
-              <Route path="/" element={<RootRoute />} />
-              <Route path="/landing" element={<Landing />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/chat" element={<Chat />} />
-              <Route path="/friends" element={<Friends />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/mental-health" element={<MentalHealth />} />
-              <Route path="/admin" element={<AdminLogin />} />
-              <Route path="/admin/dashboard" element={<AdminPanel />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </MainLayout>
-        </BrowserRouter>
+        <AuthProvider>
+          <BrowserRouter>
+            <MainLayout>
+              <Routes>
+                <Route path="/" element={<RootRoute />} />
+                <Route path="/landing" element={<Landing />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/chat" element={<Chat />} />
+                <Route path="/friends" element={<Friends />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/mental-health" element={<MentalHealth />} />
+                <Route path="/admin" element={<AdminPanel />} />
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </MainLayout>
+          </BrowserRouter>
+        </AuthProvider>
       </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>

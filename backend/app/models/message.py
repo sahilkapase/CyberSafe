@@ -23,6 +23,11 @@ class Message(Base):
     severity_score = Column(String, nullable=True)  # low, medium, high
     is_blocked = Column(Boolean, default=False)
     
+    # NSFW detection for images
+    is_nsfw = Column(Boolean, default=False)
+    nsfw_confidence = Column(String, nullable=True)  # Confidence score from detector
+
+    
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     

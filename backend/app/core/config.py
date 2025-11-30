@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     # HuggingFace
     HF_TOKEN: str = ""
     
+    # AI/ML Settings
+    ENABLE_HEAVY_MODELS: bool = True  # Set to False in production if low RAM
 
     # CORS
     # Using Any to prevent pydantic-settings from trying to JSON parse the env var
@@ -29,8 +31,9 @@ class Settings(BaseSettings):
         default_factory=lambda: [
             "http://localhost:5173",
             "http://localhost:3000",
-            "http://localhost:8080",
+            "http://localhost:8080",  # Vite dev server
             "http://localhost:8081",
+            # Add your production frontend URL here or set via ALLOWED_ORIGINS env var
         ]
     )
     
@@ -79,4 +82,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-

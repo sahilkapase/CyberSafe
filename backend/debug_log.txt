@@ -1,0 +1,5 @@
+2025-11-30 06:25:47.098775: Signup attempt for successtest2@example.com
+2025-11-30 06:25:49.903412: User created successfully: 13
+2025-11-30 06:26:31.570791: Login attempt for successtest2@example.com
+2025-11-30 06:26:32.802036: User found: successtest2@example.com, verifying password...
+2025-11-30 06:26:33.149371: Password valid: True

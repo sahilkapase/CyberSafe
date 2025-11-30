@@ -14,9 +14,10 @@ class SensitivityLevel(str, enum.Enum):
     HIGH = "high"
 
 
-class UserRole(str, enum.Enum):
-    USER = "user"
-    ADMIN = "admin"
+class SafetyColor(str, enum.Enum):
+    GREEN = "green"
+    YELLOW = "yellow"
+    RED = "red"
 
 
 class User(Base):
@@ -42,6 +43,7 @@ class User(Base):
     role = Column(SQLEnum(UserRole), default=UserRole.USER)
     
     # Tags and warnings
+    safety_color = Column(SQLEnum(SafetyColor), default=SafetyColor.GREEN)
     has_red_tag = Column(Boolean, default=False)
     warning_count = Column(Integer, default=0)
     is_blocked = Column(Boolean, default=False)

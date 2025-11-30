@@ -37,6 +37,7 @@ class UserResponse(BaseModel):
     avatar_url: Optional[str] = None
     sensitivity_level: str
     role: str
+    safety_color: str = "green"
     has_red_tag: bool
     warning_count: int
     
