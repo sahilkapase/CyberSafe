@@ -31,6 +31,8 @@ class UserResponse(BaseModel):
     email: str
     full_name: Optional[str] = None
     avatar_url: Optional[str] = None
+    role: str = "user"
+    safety_color: str = "green"
     has_red_tag: bool = False
     warning_count: int = 0
     is_blocked: bool = False
